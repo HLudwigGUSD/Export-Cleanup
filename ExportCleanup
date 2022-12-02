@@ -1,0 +1,135 @@
+ /** Takes GC's 'All Grades' sheet and truns it into a useable CSV for import to Q *
+ * 
+ * List the summative assignment titles the "var = summative..." in line 8 in quotes, separated by commas, all between the brackets.  For example, to add the assignment 'ABCD,' it would read... var summative = ["Ch 1-3 Test", "Front Page News!", "ABCD"];
+*/
+
+//add new assignments below...
+var summative = ["Gravity, Mass, and Distance CER","Test Ch 4 Forces and Newton's Laws","Unit 1 Culminating Animation Project","CER Human Consumption"]; //<---*before the end bracket*
+//add new assignments above...
+
+function onOpen() {
+  var ui = SpreadsheetApp.getUi();
+  ui.createMenu('Export Cleanup')
+      .addItem('Cleanup!', 'exportCleanUp')
+      .addToUi();
+}
+
+var ss = SpreadsheetApp.getActiveSpreadsheet();
+var sheet = ss.getActiveSheet();
+var sheets = ss.getSheets();
+var rangeData = sheet.getDataRange();
+var data = rangeData.getValues();
+var lastColumn = rangeData.getLastColumn();
+var lastRow = rangeData.getLastRow();
+
+//removes blank assignments
+function trimAssignments() {
+  ss.deleteSheet(sheets[1]);
+  ss.deleteSheet(sheets[2]);
+  var i = lastColumn - 1;
+  while (i >= 4) {
+    if(!data[4][i]) {
+      sheet.deleteColumn(i + 1);
+    }
+    i = i - 1;
+  }
+}
+
+//Remove All Empty Columns in the Entire Workbook
+function removeEmptyColumnsAndRows() {
+  const ss = SpreadsheetApp.getActiveSheet();
+  var allSheets = SpreadsheetApp.getActiveSpreadsheet().getSheets();
+  for (var i in allSheets){
+    var sheet = allSheets[i]
+    var maxColumns = sheet.getMaxColumns(); 
+    var lastColumn = sheet.getLastColumn();
+    if (maxColumns - lastColumn != 0){
+      sheet.deleteColumns(lastColumn + 1, maxColumns - lastColumn);
+    }
+  }
+  for (var i in allSheets){
+    var sheet = allSheets[i]
+    var maxRows = sheet.getMaxRows(); 
+    var lastRow = sheet.getLastRow();
+    if (maxRows - lastRow != 0){
+          sheet.deleteRows(lastRow + 1, maxRows - lastRow);
+    }
+  }
+}
+
+//Formats the top three rows
+function formatHeader() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  sheet.setFrozenColumns(0);
+  sheet.setFrozenRows(0);
+  var header = [["Last Name", "First Name",	"Email Address"],
+                ["Date", "", ""],
+                ["Points", "", ""]];
+  sheet.deleteColumn(4);
+  sheet.insertRowsBefore(1, 3);
+  sheet.getRange("5:5").copyTo(sheet.getRange("1:1"), {contentsOnly:true});
+  sheet.getRange("4:4").copyTo(sheet.getRange("2:2"), {contentsOnly:true});
+  sheet.getRange("6:6").copyTo(sheet.getRange("3:3"), {contentsOnly:true});
+  sheet.getRange(1, 1, 3, 3).setValues(header);
+  sheet.deleteRows(4,5);
+}
+
+//Change Date Format
+function formatDate() {
+  var lastColumn = sheet.getLastColumn();
+  var i = lastColumn
+  while (i > 3) {
+    var cell = SpreadsheetApp.getActiveSheet().getRange(2, i);
+    cell.setNumberFormat("d-mmm-yy");
+    i = i - 1;
+  }
+}
+
+//Copy Sheet 0 to Sheet1 & Sheet2
+function copySheets() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = SpreadsheetApp.getActiveSheet();
+  SpreadsheetApp.getActiveSpreadsheet().duplicateActiveSheet();
+  SpreadsheetApp.getActiveSpreadsheet().duplicateActiveSheet();
+  var sheets = SpreadsheetApp.getActiveSpreadsheet().getSheets();
+  sheets[1].setName('Formative');
+  sheets[2].setName('Summative');
+  sheets[0].activate();
+}
+
+//Isolate Formative Assignments
+function isolateFormative() {
+  var sheet = SpreadsheetApp.getActive().getSheetByName('Formative')
+  var rangeData = sheet.getDataRange();
+  var data = rangeData.getValues();
+  var lastColumn = sheet.getLastColumn();
+  for (i = lastColumn - 1; i > 2; i = i - 1) {
+    if (summative.includes(data[0][i])) {
+      sheet.deleteColumn(i + 1);
+    }
+  }
+}
+
+//Isolate Summative Assignments
+function isolateSummative() {
+  var sheet = SpreadsheetApp.getActive().getSheetByName('Summative')
+  var rangeData = sheet.getDataRange();
+  var data = rangeData.getValues();
+  var lastColumn = sheet.getLastColumn(); 
+  for (i = lastColumn - 1; i > 2; i = i - 1) {
+    if (!summative.includes(data[0][i])) {
+      sheet.deleteColumn(i + 1);
+    }
+  }
+}
+
+//All together now!!
+function exportCleanUp() {
+  trimAssignments();
+  removeEmptyColumnsAndRows();
+  formatHeader();
+  formatDate(); 
+  copySheets();
+  isolateFormative();
+  isolateSummative();
+}
